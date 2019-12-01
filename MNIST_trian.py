@@ -41,7 +41,7 @@ model.compile(optimizer='adam',
               metrics=['accuracy'])
 
 # Fit the model to the data, making 5 passes over the dataset.
-model.fit(x_train, y_train, epochs=1)
+model.fit(x_train, y_train, epochs=5)
 
 # Testing the accuracy of the model on data it's never seen before.
 model.evaluate(x_test,  y_test, verbose=2)
