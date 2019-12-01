@@ -1,8 +1,10 @@
-\documentclass[transmag, onecolumn]{IEEEtran}
+\documentclass[transmag]{IEEEtran}
 \usepackage{latexsym}
 \usepackage{graphicx}
 \usepackage{amsfonts,amssymb,amsmath}
 \usepackage{hyperref}
+\usepackage{fancyvrb}
+\usepackage{float}
 \def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
 
 \begin{document}
@@ -11,7 +13,7 @@
 in Tensorflow 2.0}
 
 \author{Charlie Wilkin
-\thanks{Submitted November 31st, 2019. This work was completed as part of a 
+\thanks{Submitted December 1st, 2019. This work was completed as part of a 
 final project submission for EE456, Intro to Neural Networks.}}
 
 \IEEEtitleabstractindextext{\begin{abstract}
@@ -56,54 +58,186 @@ model and preparation of the dataset are explained thorougly in Section II.
 
 
 
-\subsection{Review Stage}
-Please check with your editor on whether to submit your manuscript as hard 
-copy or electronically for review. If hard copy, submit photocopies such 
-that only one column appears per page. This will give your referees plenty 
-of room to write comments. Send the number of copies specified by your 
-editor (typically four). If submitted electronically, find out if your 
-editor prefers submissions on disk or as e-mail attachments.
+\subsection{Preparing the Dataset}
 
-\subsection{Final Stage}
-When you submit your final version (after your paper has been accepted), 
-print it in two-column format, including figures and tables. You must also 
-send your final manuscript on a disk, via e-mail, or through a Web 
-manuscript submission system as directed by the society contact. You may use 
-\emph{Zip} or CD-ROM disks for large files, or compress files using \emph{Compress, Pkzip, Stuffit,} or \emph{Gzip.} 
+The MNIST (Modified National Institute of Standards and Technology) dataset
+is a collection of 70,000 handwritten digits prepared in 1999 by researchers at
+Courant Institute and Google Labs \cite{ref1}. Each image in the MNIST dataset
+contains 28x28 grayscale pixels representing a number from 0-9. The images are
+centered on the digit and size-normalized, with one-hot encoded labels. Fig. 1
+shows one image from the MNIST dataset.
 
-Also, send a sheet of paper or PDF with complete contact information for all 
-authors. Include full mailing addresses, telephone numbers, fax numbers, and 
-e-mail addresses. This information will be used to send each author a 
-complimentary copy of the journal in which the paper appears. In addition, 
-designate one author as the ``corresponding author.'' This is the author to 
-whom proofs of the paper will be sent. Proofs are sent to the corresponding 
-author only.
 
-\begin{verbatim}
-_________________________________________________________________
-Layer (type)                 Output Shape              Param #
-=================================================================
-conv2d (Conv2D)              (None, 26, 26, 32)        320
-_________________________________________________________________
-max_pooling2d (MaxPooling2D) (None, 13, 13, 32)        0
-_________________________________________________________________
-conv2d_1 (Conv2D)            (None, 11, 11, 64)        18496
-_________________________________________________________________
-flatten (Flatten)            (None, 7744)              0
-_________________________________________________________________
-dense (Dense)                (None, 64)                495680
-_________________________________________________________________
-dropout (Dropout)            (None, 64)                0
-_________________________________________________________________
-dense_1 (Dense)              (None, 10)                650
-=================================================================
+\begin{figure}[H]
+  \centerline{\includegraphics[width=1.5in]{fig1}}
+  \caption{A handwritten digit drom the MNIST dataset, consisting of 28x28
+  grayscale pixels\label{fig1}}
+\end{figure}
+
+The MNIST dataset is included in Tensorflow, and can be loaded easily by first
+importing Tenslorflow and then storing the dataset in a variable.
+
+\begin{figure}[H]
+\begin{Verbatim}[samepage=true]
+from __future__ import absolute_import, \
+                       division, \
+                       print_function, \
+                       unicode_literals \
+
+import tensorflow as tf
+
+# Store the MNIST dataset
+mnist = tf.keras.datasets.mnist
+\end{Verbatim}
+\end{figure}
+
+The dataset is then divided into seperate training and testing sets.
+This allows us to verify the model's performance by testing it on data that it
+was not exposed to during training. To accelerate the training process, the 
+grayscale pixel values are also normalized to between 0 and 1 by 
+dividing each pixel by 255.
+
+\begin{figure}[H]
+\begin{Verbatim}
+(x_train, y_train), (x_test, y_test) = \
+                         mnist.load_data()
+
+x_train, x_test = x_train / 255.0,
+                  x_test / 255.0
+\end{Verbatim}
+\end{figure}
+
+\noindent Finally, a color channel dimension is added to the images. This is
+dimension is blank, and exists to tell Tensorflow that there are no color
+channels in these images.
+
+\begin{figure}[H]
+\begin{Verbatim}
+x_train = x_train[..., tf.newaxis]
+x_test = x_test[..., tf.newaxis]
+\end{Verbatim}
+\end{figure}
+
+\subsection{Defining the Model}
+
+The model is defined sequantially, layer by layer. The first layer consists
+a collection of 32 feature detectors, each 3x3 elements, convolved (i.e. 
+scanned across) the image \cite{ref2}. The resulting output is a set of 32 
+matrixes, each containing 26x26 elements. To compress this output into 
+something more manageable, a 2x2 pooling layer is applied to keep only one out 
+of every four pixels before feeding the result into a second layer of 64 
+convolutions \cite{ref3}.
+
+\begin{figure}[H]
+\begin{Verbatim}
+model = tf.keras.models.Sequential([
+
+    tf.keras.layers.Conv2D(
+            32, \
+            (3, 3), \
+            activation='relu', \
+            input_shape=(28, 28, 1)),
+
+    tf.keras.layers.MaxPooling2D((2, 2)),
+
+    tf.keras.layers.Conv2D(
+            64, \
+            (3, 3), \
+            activation='relu'),
+\end{Verbatim}
+\end{figure}
+
+The activation function applied at each element of the 3x3 feature detectors
+is known as the ReLU function, or Rectified Linear Unit \cite{ref4}. The ReLU activation 
+function (shown in Fig. 2) is popular for its simplicity and its 
+easily-calculated derivative. The use of a non-linear function is crucial, as
+any sum of purely linear functions will necessarily collapse into a single 
+linear function itself.
+
+\begin{figure}[H]
+  \includegraphics[width=3in]{fig2}
+  \caption{The Rectified Linear Unit activation function used throughout 
+  this model.\label{fig2}}
+\end{figure}
+
+The output of the second convolutional layer is a three dimensional tensor of
+shape 11x11x64, and the output of the network as a whole must be a ten 
+dimensional output vector. To achieve this, the output of the second 
+convolutional layer is first flattened into a single 7744 dimensional vector.
+This vector is then fed into a traditional, fully-connected layer of 64 units
+with the ReLU activation function.
+
+\begin{figure}[H]
+\begin{Verbatim}
+    tf.keras.layers.Flatten(),
+    tf.keras.layers.Dense(
+            64, \
+            activation='relu'),
+\end{Verbatim}
+\end{figure}
+
+Up to this point, a total of 514,496 trainable parameters have been added to
+the model. Bearing in mind that the MNIST dataset contains only 70,000 images,
+a model of this size risks fitting to random, unintended patterns in the 
+training data and failing to generalize to the test data as a result. To
+prevent this, the network is forced to act as a consensus of smaller networks
+by randomly eliminating 20\% of the connections in the fully-connected layer
+during training.
+
+\begin{figure}[H]
+\begin{Verbatim}
+    tf.keras.layers.Dropout(0.2),
+\end{Verbatim}
+\end{figure}
+
+
+The final layer consists of a ten fully-connected units with
+the softmax activation function, which compresses the outputs into a values
+between 0 and 1 while constraining them such that they add to 1. This causes
+the output vector to resemble a probability distribution, where the largest
+value represents the predicted digit. 
+
+\begin{figure}[H]
+\begin{Verbatim}
+    tf.keras.layers.Dense(
+            10, \
+            activation='softmax')
+])
+\end{Verbatim}
+\end{figure}
+
+\noindent A summary of the complete model, generated using Tensorflow's
+\verb model.summary() method, appears in Table I. 
+
+\begin{table}[H]
+  \caption{Summary of Model, as provided by Tensorflow\label{table}}
+  \centering
+  \begin{BVerbatim}
+___________________________________________________
+Layer (type)       Output Shape            Param #
+===================================================
+conv2d          (None, 26, 26, 32)        320
+___________________________________________________
+max_pooling2d   (None, 13, 13, 32)        0
+___________________________________________________
+conv2d_1        (None, 11, 11, 64)        18496
+___________________________________________________
+flatten         (None, 7744)              0
+___________________________________________________
+dense           (None, 64)                495680
+___________________________________________________
+dropout         (None, 64)                0
+___________________________________________________
+dense_1         (None, 10)                650
+===================================================
 Total params: 515,146
 Trainable params: 515,146
 Non-trainable params: 0
-_________________________________________________________________
-\end{verbatim}
+___________________________________________________
+  \end{BVerbatim}
+\end{table}
 
-\subsection{Figures}
+\subsection{Training the Model}
 Format and save your graphic images using a suitable graphics processing 
 program that will allow you to create the images as PostScript (PS), 
 Encapsulated PostScript (EPS), or Tagged Image File Format (TIFF), sizes 
@@ -514,10 +648,24 @@ like to thank $\ldots$ .'' Instead, write ``F. A. Author thanks $\ldots$ .''
 unnumbered footnote on the first page, not here.}
 
 \begin{thebibliography}{00}
-\bibitem{ref1} G. O. Young, ``Synthetic structure of industrial plastics (Book style with paper title and editor),'' in \emph{Plastics}, 2nd ed. vol. 3, J. Peters, Ed. New York: McGraw-Hill, 1964, pp. 15--64.
-\bibitem{ref2} W.-K. Chen, \emph{Linear Networks and Systems} (Book style)$. $Belmont, CA: Wadsworth, 1993, pp. 123--135.
-\bibitem{ref3} H. Poor, \emph{An Introduction to Signal Detection and Estimation}. New York: Springer-Verlag, 1985, ch. 4.
-\bibitem{ref4} B. Smith, ``An approach to graphs of linear forms (Unpublished work style),'' unpublished.
+
+\bibitem{ref1} Y. LeCun, C. Cortes, C. J. Burges, MNIST Handwritten Digits 
+    Database; AT\&T Bell Laboratories, 2010.
+
+\bibitem{ref2} Y. LeCun, B. Boser, J. S. Denker, D. Henderson, R. E. Howard, 
+    W. Hubbard, L. D. Jackel, Backpropagation Applied to Handwritten Zip Code 
+    Recognition; AT\&T Bell Laboratories, 1989.
+
+\bibitem{ref3} Yamaguchi, Kouichi; Sakamoto, Kenji; Akabane, Toshio; Fujimoto, 
+    Yoshiji (November 1990). A Neural Network for Speaker-Independent Isolated 
+    Word Recognition. First International Conference on Spoken Language 
+    Processing (ICSLP 90). Kobe, Japan.
+
+\bibitem{ref4} Hahnloser, R.; Sarpeshkar, R.; Mahowald, M. A.; Douglas, 
+    R. J.; Seung, H. S. (2000). "Digital selection and analogue amplification 
+    coexist in a cortex-inspired silicon circuit". Nature. 405: 947–951.
+
+
 \bibitem{ref5} E. H. Miller, ``A note on reflector arrays (Periodical style---Accepted for publication),'' \emph{IEEE Trans. Antennas Propagat.}, to be published.
 \bibitem{ref6} J. Wang, ``Fundamentals of erbium-doped fiber amplifiers arrays (Periodical style---Submitted for publication),'' \emph{IEEE J. Quantum Electron.}, submitted for publication.
 \bibitem{ref7} C. J. Kaufman, Rocky Mountain Research Lab., Boulder, CO, private communication, May 1995.
