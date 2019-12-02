@@ -41,8 +41,8 @@ Neural Networks, Computer Vision, Parallel Processing, Convolutional Neural Netw
 \IEEEPARstart{T}{his} project demonstrates one method of achieving greater than
 99\% accuracy on the MNIST dataset of handwritten digits. While this
 performance is far from state of the art, the implementation is easy to
-understand and trains quickly on mid-range consumer hardware.  
-dure outlined in Section II will assume some rudamentary experience with the
+understand and trains quickly on mid-range consumer hardware. The procedure 
+outlined in Section II will assume some rudamentary experience with the
 Python programming language, a working install of Tensorflow 2.0 on
 a Debian-based system such as Ubuntu, and a compatible Nvidia Graphics
 Processing Unit. 
@@ -72,7 +72,7 @@ shows one image from the MNIST dataset.
 \begin{figure}[H]
   \centerline{\includegraphics[width=1.5in]{fig1}}
   \caption{A handwritten digit drom the MNIST dataset, consisting of 28x28
-  grayscale pixels\label{fig1}}
+  grayscale pixels.\label{fig1}}
 \end{figure}
 
 The MNIST dataset is included in Tensorflow, and can be loaded easily by first
@@ -107,7 +107,7 @@ x_train, x_test = x_train / 255.0,
 \end{Verbatim}
 \end{figure}
 
-\noindent Finally, a color channel dimension is added to the images. This is
+\noindent Finally, a color channel dimension is added to the images. This
 dimension is blank, and exists to tell Tensorflow that there are no color
 channels in these images.
 
@@ -120,7 +120,7 @@ x_test = x_test[..., tf.newaxis]
 
 \subsection{Defining the Model}
 
-The model is defined sequantially, layer by layer. The first layer consists
+The model is defined sequentially, layer by layer. The first layer consists
 a collection of 32 feature detectors, each 3x3 elements, convolved (i.e. 
 scanned across) the image \cite{ref2}. The resulting output is a set of 32 
 matrixes, each containing 26x26 elements. To compress this output into 
